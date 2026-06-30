@@ -14,15 +14,11 @@ function isValidObjectId(id) {
 
 export async function listProjects(req, res) {
   try {
-    const { section, technology } = req.query;
+    const { section } = req.query;
     const filters = {};
 
     if (section) {
       filters.section = section;
-    }
-
-    if (technology) {
-      filters.technologies = { $in: [technology] };
     }
 
     const projects = await getAllProjects(filters);
@@ -32,22 +28,30 @@ export async function listProjects(req, res) {
   }
 }
 
+export async function getProject(req, res) {
+  try {
+    const { id } = req.params;
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({ message: "id invalido" });
+    }
+
+    const project = await getProjectById(id);
+    if (!project) {
+      return res.status(404).json({ message: "Proyecto no encontrado" });
+    }
+
+    res.status(200).json(project);
+  } catch (error) {
+    res.status(500).json({ message: "Error al obtener proyecto", error: error.message });
+  }
+}
+
 export async function addProject(req, res) {
   try {
     const { name, description, technologies, link, img, section, clientId } = req.body;
 
-    if (!name || !description || !link || !img || !section) {
-      return res.status(400).json({
-        message: "Faltan campos obligatorios: name, description, link, img, section",
-      });
-    }
-
     let clientObjectId = null;
     if (clientId) {
-      if (!isValidObjectId(clientId)) {
-        return res.status(400).json({ message: "clientId invalido" });
-      }
-
       const client = await getClientById(clientId);
       if (!client) {
         return res.status(404).json({ message: "Cliente no encontrado" });
@@ -59,7 +63,7 @@ export async function addProject(req, res) {
     const newProject = {
       name,
       description,
-      technologies: Array.isArray(technologies) ? technologies : [],
+      technologies,
       link,
       img,
       section,
@@ -87,21 +91,11 @@ export async function editProject(req, res) {
 
     const { name, description, technologies, link, img, section, clientId } = req.body;
 
-    if (!name || !description || !link || !img || !section) {
-      return res.status(400).json({
-        message: "Faltan campos obligatorios: name, description, link, img, section",
-      });
-    }
-
-    let clientObjectId = existing.clientId ?? null;
+    let clientObjectId = existing.clientId || null;
     if (clientId !== undefined) {
       if (!clientId) {
         clientObjectId = null;
       } else {
-        if (!isValidObjectId(clientId)) {
-          return res.status(400).json({ message: "clientId invalido" });
-        }
-
         const client = await getClientById(clientId);
         if (!client) {
           return res.status(404).json({ message: "Cliente no encontrado" });
@@ -114,7 +108,7 @@ export async function editProject(req, res) {
     const updated = await updateProject(id, {
       name,
       description,
-      technologies: Array.isArray(technologies) ? technologies : [],
+      technologies,
       link,
       img,
       section,

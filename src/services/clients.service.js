@@ -19,3 +19,22 @@ export async function createClient(data) {
   const result = await db.collection(COLLECTION).insertOne(data);
   return { _id: result.insertedId, ...data };
 }
+
+export async function updateClient(id, data) {
+  const db = await getDb();
+  const _id = new ObjectId(id);
+  const updated = await db.collection(COLLECTION).findOneAndUpdate(
+    { _id },
+    { $set: data },
+    { returnDocument: "after" },
+  );
+
+  return updated;
+}
+
+export async function deleteClient(id) {
+  const db = await getDb();
+  const _id = new ObjectId(id);
+  const result = await db.collection(COLLECTION).deleteOne({ _id });
+  return result.deletedCount;
+}
